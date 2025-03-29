@@ -11,3 +11,14 @@ To any future reader - Arduino Nano 33 BLE **DOES NOT SUPPORT** classic Bluetoot
 
 This is an example how to do stuff, not great, not finished, and it will **never** be finished.
 
+
+## The future - might end up a new repo
+
+Grab uBlox NINA-B30 board
+Grab a decent GYRO:
+ - ISM330DHC
+ - LSM6DSOX
+ - LSM6DS3TR-C
+
+Maybe find a Gyro from some of BetaFlight boards
+Things
