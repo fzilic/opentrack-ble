@@ -12,6 +12,7 @@
 #include "Proximity.h"
 
 // #define _DEBUG_
+#define _HATIRE_SERIAL_
 
 #define SERIAL_SPEED 115200
 // #define SERIAL_SPEED 9600
@@ -23,6 +24,11 @@ Hatire hatire;
 Proximity proximity;
 LedRgb led;
 
+BLEService service("FC7C1FD2-0C82-11F0-BBE4-00155DD2D8C6");
+BLEStringCharacteristic notification("7E13A434-0C83-11F0-9DE9-00155DD2D8C6", BLENotify, 64);
+
+unsigned long uptime = 0;
+
 void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -30,8 +36,8 @@ void setup()
   led.begin();
 
   Serial.begin(SERIAL_SPEED);
-  while (!Serial)
-    ;
+  // while (!Serial)
+  //   ;
 
   if (!APDS.begin())
   {
@@ -55,11 +61,71 @@ void setup()
   led.red();
   gyro.calibrate(500);
   led.green();
+
+  if (!BLE.begin())
+  {
+#ifdef _DEBUG_
+    Serial.println("starting Bluetooth® Low Energy failed!");
+#endif
+    while (1)
+      ;
+  }
+
+  BLE.setLocalName("HT N33SBLER2");
+  BLE.setAdvertisedService(service);
+  service.addCharacteristic(notification);
+  BLE.addService(service);
+  notification.writeValue("");
+  BLE.advertise();
 }
+
+GyroData process();
 
 void loop()
 {
+  // listen for BLE peripherals to connect:
+  BLEDevice central = BLE.central();
 
+  if (central)
+  {
+#ifdef _DEBUG_
+    Serial << "Connected to central: " << central.address() << "\n";
+#endif
+
+    digitalWrite(LED_BUILTIN, HIGH); // turn on the LED to indicate the connection
+    while (central.connected())
+    {
+      auto data = process();
+      if (data.hasData)
+      {
+
+#ifdef _DEBUG_
+        char buffer[64];
+        sprintf(buffer, "R:%f,P:%f,Y:%f", data.roll, data.pitch, data.yaw);
+        Serial << buffer << "\n";
+#endif
+        float roll = data.roll;
+        float pitch = data.pitch;
+        float yaw = data.yaw;
+
+        char data[sizeof(float) * 3];
+        memcpy(data, &roll, sizeof roll);
+        memcpy(&data[sizeof(float)], &pitch, sizeof pitch);
+        memcpy(&data[sizeof(float) * 2], &yaw, sizeof yaw);
+
+        notification.writeValue(data);
+      }
+    }
+  }
+  else
+  {
+    process();
+    digitalWrite(LED_BUILTIN, LOW); // turn on the LED to indicate the connection
+  }
+}
+
+GyroData process()
+{
   if (APDS.gestureAvailable())
   {
     if (APDS.readGesture() != GESTURE_NONE)
@@ -95,8 +161,13 @@ void loop()
   {
 #ifdef _DEBUG_
     data.print();
+
 #else
+#ifdef _HATIRE_SERIAL_
     hatire.send(data);
 #endif
+#endif
   }
+
+  return data;
 }
