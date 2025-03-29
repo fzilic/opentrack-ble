@@ -23,9 +23,6 @@ Hatire hatire;
 Proximity proximity;
 LedRgb led;
 
-BLEService service("FC7C1FD2-0C82-11F0-BBE4-00155DD2D8C6");
-BLEStringCharacteristic notification("7E13A434-0C83-11F0-9DE9-00155DD2D8C6", BLENotify, 14);
-
 void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
